@@ -1,0 +1,20 @@
+<?php 
+###############################################################
+# Cron Backup Script
+###############################################################
+# Developed by Jereme Hancock for Cloud Sites
+###############################################################
+
+//Set information specific to your site
+$db_host = "";
+$db_user = "";
+$db_password = "";
+$db_name = "";
+$url = "";
+$datacenter = "";
+
+//Set your Cloud Files API credentials
+$username = "";
+$key = ""; 
+
+?>
