@@ -20,7 +20,7 @@ $backupname = "backup-$date.tar.gz";
 shell_exec("mysqldump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
 
 //Backup Site
-shell_exec("tar -czpvf sitebackup.tar.gz $path");
+shell_exec("tar -czpvf sitebackup.tar.gz ./web/content");
 
 //Compress DB and Site backup into one file
 shell_exec("tar --exclude 'sitebackup' --remove-files -czpvf $backupname sitebackup.tar.gz db_backup.sql");
