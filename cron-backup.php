@@ -14,57 +14,123 @@ require_once('cron-backup-config.php');
 #Set the date and name for the backup files
 date_default_timezone_set('America/Chicago');
 $date = date("M-d-Y_H-i-s");
-$backupname = "$url-backup-$date.tar.gz";
+$backupname = "$url-backup-$date.zip";
 
-//Dump the mysql database
-echo "Starting database dump\n";
+if ($db_backup == "true") {
+// Check mysql database credentials
+$db_connection = mysql_connect($db_host,$db_user,$db_password);
+
+if (!$db_connection) {
+echo date("h:i:s")." -- Database connection failed! Check your database credentials in the cron-backup-config.php file.\n";
+die();
+}
+else {
+// Dump the mysql database
+echo date("h:i:s")." -- Starting database dump...\n";
 shell_exec("mysqldump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
-echo "Database dump complete\n";
+echo date("h:i:s")." -- Database dump complete!\n";
+}
+}
 
-//Backup Site
-echo "Starting files backup\n";
-shell_exec("tar -czpvf sitebackup.tar.gz -C $path .");
-echo "Files backup complete\n";
+// Backup site files
+echo date("h:i:s")." -- Starting files backup...\n";
+chdir("$path");
+shell_exec("zip -9pr ../../sitebackup.zip .");
+chdir("../../");
 
-//Compress DB and Site backup into one file
-echo "Combining database and files into one archive started\n";
-shell_exec("tar --exclude 'sitebackup' --remove-files -czpvf $backupname sitebackup.tar.gz db_backup.sql");
-echo "Combining database and files into one archive complete\n";
+if (file_exists("sitebackup.zip")) {
+echo date("h:i:s")." -- Files backup complete!\n";
+}
+else {
+echo date("h:i:s")." -- File backup failed! Be sure your site is not over 4 gigs.\n";
+shell_exec("rm db_backup.sql");
+die();
+}
 
-//Set API Timeout
+if ($db_backup == "true") {
+// Compress DB and Site backup into one file
+echo date("h:i:s")." -- Combining database and files into one archive started...\n";
+shell_exec("zip -9pr $backupname sitebackup.zip db_backup.sql");
+
+if (file_exists("$backupname")) {
+echo date("h:i:s")." -- Combining database and files into one archive complete!\n";
+}
+else {
+echo date("h:i:s")." -- Combining database and files into one archive failed! Be sure your site files plus the database is not over 4 gigs\n";
+shell_exec("rm sitebackup.zip ; rm db_backup.sql");
+die();
+}
+}
+else {
+// Rename sitebackup.zip
+shell_exec("mv sitebackup.zip $backupname");
+}
+
+// md5 for local backup
+$md5 = md5_file($backupname);
+
+// Set API Timeout
 define('RAXSDK_TIMEOUT', '3600');
 
 // require Cloud Files API
 require_once('cron-backup-api/lib/rackspace.php');
 
-// authenticate to Cloud Files
+// Authenticate to Cloud Files
+echo date("h:i:s")." -- Connecting to Cloud Files\n";
+try {
 define('AUTHURL', 'https://identity.api.rackspacecloud.com/v2.0/');
 $mysecret = array(
     'username' => $username,
     'apiKey' => $key
 );
 
-echo "Connecting to Cloud Files\n";
+echo date("h:i:s")." -- Connected to Cloud Files!\n";
 // establish our credentials
 $connection = new Rackspace(AUTHURL, $mysecret);
 // now, connect to the ObjectStore service
 
 $ostore = $connection->ObjectStore('cloudFiles', "$datacenter");
+}
 
-echo "Creating Cloud Files Container\n";    
+catch (HttpUnauthorizedError $e) {
+echo date("h:i:s")." -- Cloud Files API connection could not be established! Check your API credentials in the cron-backup-config.php file.\n";
+die();
+}
+
+echo date("h:i:s")." -- Creating Cloud Files Container...\n";    
 // create container if it doesn't already exist
 $cont = $ostore->Container();
 $cont->Create(array('name'=>"$url-cron-backups"));
 
-echo "Moving backup to Cloud Files\n";
+echo date("h:i:s")." -- Cloud Files container created or already exists!\n";
+
+echo date("h:i:s")." -- Moving backup to Cloud Files...\n";
 // set zipit object
 $obj = $cont->DataObject();
 
 $obj->Create(array('name' => "$backupname", 'content_type' => 'application/x-gzip'), $filename="$backupname");
 
-echo "Cleaning up local backups\n";
-//After your backup has been uploaded, remove the tar ball from the filesystem.
-shell_exec("rm $backupname");
+// get etag(md5)
+$etag = $obj->hash;
 
-echo "Backup complete\n";
+// compare md5 wih etag
+if ($md5 != $etag) {
+$obj->Delete(array('name'=>"$backupname"));
+echo date("h:i:s")." -- Backup failed integrity check! Please try again.\n";
+}
+else {
+echo date("h:i:s")." -- Backup moved to Cloud Files Successful!\n";
+}
+
+if ($db_backup == "true") {
+echo date("h:i:s")." -- Cleaning up local backups...\n";
+//After your backup has been uploaded, remove the zip from the filesystem.
+shell_exec("rm $backupname ; rm sitebackup.zip ; rm db_backup.sql");
+echo date("h:i:s")." -- Local backups cleaned up!\n";
+}
+else {
+shell_exec("rm $backupname");
+}
+
+echo date("h:i:s")." -- Backup complete!\n";
 ?>
