@@ -93,8 +93,16 @@ $ostore = $connection->ObjectStore('cloudFiles', "$datacenter");
 }
 
 catch (HttpUnauthorizedError $e) {
+if ($db_backup == "true") {
 echo date("h:i:s")." -- Cloud Files API connection could not be established! Check your API credentials in the cron-backup-config.php file.\n";
+shell_exec("rm $backupname ; rm sitebackup.zip ; rm db_backup.sql");
 die();
+}
+else {
+echo date("h:i:s")." -- Cloud Files API connection could not be established! Check your API credentials in the cron-backup-config.php file.\n";
+shell_exec("rm $backupname");
+die();
+}
 }
 
 echo date("h:i:s")." -- Creating Cloud Files Container...\n";    
