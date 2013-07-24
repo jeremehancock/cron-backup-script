@@ -43,7 +43,9 @@ echo date("h:i:s")." -- Files backup complete!\n";
 }
 else {
 echo date("h:i:s")." -- File backup failed! Be sure your site is not over 4 gigs.\n";
+if ($db_backup == "true") {
 shell_exec("rm db_backup.sql");
+}
 die();
 }
 
