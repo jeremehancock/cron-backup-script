@@ -27,6 +27,9 @@ die();
 else {
 // Dump the mysql database
 echo date("h:i:s")." -- Starting database dump...\n";
+// First we ensure we are in the root of the site and not the root of account. This is needed since cron runs from the root of the account
+chdir("$path");
+chdir("../../");
 shell_exec("mysqldump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
 echo date("h:i:s")." -- Database dump complete!\n";
 }
