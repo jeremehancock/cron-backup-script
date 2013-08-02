@@ -11,10 +11,34 @@
 // require Cron Backup Config
 require_once('cron-backup-config.php');
 
-#Set the date and name for the backup files
+// Set the date and name for the backup files
 date_default_timezone_set('America/Chicago');
 $date = date("M-d-Y_H-i-s");
 $backupname = "$url-backup-$date.zip";
+
+// Check for newer versions of script
+function file_get_data($url) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+    curl_setopt($ch, CURLOPT_URL, $url);
+    $data = curl_exec($ch);
+    curl_close($ch);
+    return $data;
+}
+
+$latest_version = file_get_data('https://raw.github.com/jeremehancock/cron-backup-script-setup/master/version.txt');
+$latest_version = preg_replace( "/\r|\n/", "", $latest_version );
+
+if(!isset($installed_version)) {
+echo "New version available!\nTo update simply re-install following instructions found here: http://www.rackspace.com/knowledge_center/article/scheduled-backup-cloud-sites-to-cloud-files\n";
+}
+
+elseif ($installed_version < $latest_version) {
+echo "New version available!\nTo update simply re-install following instructions found here: http://www.rackspace.com/knowledge_center/article/scheduled-backup-cloud-sites-to-cloud-files\n";
+}
 
 if ($db_backup == "true") {
 // Check mysql database credentials
