@@ -26,6 +26,6 @@ else {
 $db_backup = "false";
 }
 
-$installed_version = "1.1";
+$installed_version = "";
 
 ?>
