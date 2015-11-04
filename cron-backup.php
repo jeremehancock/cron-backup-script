@@ -54,7 +54,13 @@ echo date("h:i:s")." -- Starting database dump...\n";
 // First we ensure we are in the root of the site and not the root of account. This is needed since cron runs from the root of the account
 chdir("$path");
 chdir("../../");
-shell_exec("mysqldump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
+// check for Maria DB and auto variable to ensure cron uses mariadump - This will not be needed once cron is updated.
+    if (preg_match('/mariadb/',$db_host)) {
+        shell_exec("mariadump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
+    }
+    else {
+        shell_exec("mysqldump -h $db_host -u $db_user --password='$db_password' $db_name > db_backup.sql");
+    }
 echo date("h:i:s")." -- Database dump complete!\n";
 }
 }
